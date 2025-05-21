@@ -1,0 +1,12 @@
+function AreaV = VertexArea(F, V)
+V = Vertex.R3(V);
+Vij = V(F(:,2),:) - V(F(:,1),:);
+Vik = V(F(:,3),:) - V(F(:,1),:);
+Z  = cross(Vij, Vik) ;
+Area = 0.5 * Vertex.Norm(Z); 
+Fno = size(F,1);
+Vno = size(V,1);
+TempInd = 1:Fno;
+TempInd = repmat(TempInd,1,3);
+Gvf = sparse(F, TempInd, 1, Vno, Fno);
+AreaV = Gvf*Area / 3;
