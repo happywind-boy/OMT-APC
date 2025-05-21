@@ -33,8 +33,6 @@ def get_model(args):
 def get_criterion(opt):
     Losses = {
         'CEL': torch.nn.CrossEntropyLoss(label_smoothing=0.1),
-        'FCL': monai.losses.FocalLoss(to_onehot_y=True, gamma=2),
-        'BCE': torch.nn.BCEWithLogitsLoss(),
     }
 
     criterion = Losses[opt.loss]
