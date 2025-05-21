@@ -1,11 +1,9 @@
 import monai
 import torch
 import Net.SEResNet as senet
-import Net.Effnet as effnet
 from src.network.model import *
 from src.network.monai_model import *
 from src.optimizer.Adam import Adam
-from src.network.ResI3D import ResI3D, ResI3DF
 
 __all__ = ["get_model", "get_optimizer", "get_criterion", "get_lr_scheduler"]
 
@@ -24,36 +22,9 @@ def get_model(args):
                                      , reduction=reduction),
         'seres9net': senet.se_res9net(in_channel=in_channels, num_classes=out_channels
                                       , reduction=reduction),
-        'seresnet20': senet.se_resnet20(in_channel=in_channels, num_classes=out_channels,
-                                        feature_channel=feature_channels1, reduction=reduction),
-        'seresnet32': senet.se_resnet32(in_channel=in_channels, num_classes=out_channels,
-                                        feature_channel=feature_channels1, reduction=reduction),
-        'seresnet56': senet.se_resnet56(in_channel=in_channels, num_classes=out_channels,
-                                        feature_channel=feature_channels1, reduction=reduction),
         'preresnet20': senet.se_preactresnet20(in_channel=in_channels, num_classes=out_channels,
                                                feature_channel=feature_channels2, linear_channel=linear_channels,
                                                reduction=reduction),
-        'preresnet32': senet.se_preactresnet32(in_channel=in_channels, num_classes=out_channels,
-                                               feature_channel=feature_channels2, linear_channel=linear_channels,
-                                               reduction=reduction),
-        'preresnet56': senet.se_preactresnet56(in_channel=in_channels, num_classes=out_channels,
-                                               feature_channel=feature_channels2, linear_channel=linear_channels,
-                                               reduction=reduction),
-        'mixresnet20': senet.se_mixresnet20(in_channel=in_channels, num_classes=out_channels,
-                                            feature_channel1=feature_channels1, feature_channel2=feature_channels2,
-                                            reduction=reduction),
-        'mixresnet32': senet.se_mixresnet32(in_channel=in_channels, num_classes=out_channels,
-                                            feature_channel1=feature_channels1, feature_channel2=feature_channels2,
-                                            reduction=reduction),
-        'mixresnet56': senet.se_mixresnet56(in_channel=in_channels, num_classes=out_channels,
-                                            feature_channel1=feature_channels1, feature_channel2=feature_channels2,
-                                            reduction=reduction),
-        'effnet': effnet.EfficientNet(in_channel=in_channels, width_coeff=1, depth_coeff=1,
-                                      feature_channel=feature_channels1, num_classes=out_channels),
-        'ResI3D': ResI3D(in_channels=in_channels, hidden_channels=hidden_channels, output_channels=out_channels,
-                         dropout=dropout),
-        'ResI3DF': ResI3DF(in_channels=in_channels, hidden_channels=hidden_channels, feature_channels=feature_channels2,
-                           output_channels=out_channels, dropout=dropout),
     }
 
     return Model[args.model]
