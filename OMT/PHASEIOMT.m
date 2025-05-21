@@ -6,14 +6,14 @@ addpath(genpath(fullfile('function')));
 
 %% Load Cube
 % Load Cube and Raw for making tensor
-Cube = load(fullfile('maps', 'Cube', 'Cube_128_OMT.mat'));
+Cube = load('Cube_128_OMT.mat');
 
 %% Setting
 P1_DensityName  = 'Exp-HE-Flair';
-P1_DensityParam = 1.5;
+P1_DensityParam = 1.75;
 
 P2_DensityName  = 'Exp-HE-Flair';
-P2_DensityParam = 1.5;
+P2_DensityParam = 1.75;
 DilateN = 0;
 ConvN   = 0;
 
@@ -38,17 +38,16 @@ CubeV = sub2ind(flip(CubeSize), l, j, i);
 [~, IC] = sort(CubeV);
 
 %% Loop
-path = fullfile('H:\A-ShuQian\2023-MultiCenter-All\UCSD-PTGBM');
-SaveLoc = fullfile(path, 'OMT-ADC-Inte');
-BrainLoc = fullfile(path, 'Data-RNobone-Inte');
-% LabelLoc = fullfile(path, 'valid-problem-seg');
-% BULoc = fullfile(path, 'DataRF');
+path = fullfile('');
+SaveLoc = fullfile(path, '');
+BrainLoc = fullfile(path, '');
+LabelLoc = fullfile(path, '');
 
-IdxLoc = fullfile(SaveLoc,'idx_PYTHON');
-OMTLoc = fullfile(SaveLoc,'image_intensity');
-LabLoc = fullfile(SaveLoc,'label');
-MeshLoc = fullfile(SaveLoc,'mesh');
-RegisLoc = fullfile(SaveLoc,'Registerimage');
+IdxLoc = fullfile(SaveLoc,'');
+OMTLoc = fullfile(SaveLoc,'');
+LabLoc = fullfile(SaveLoc,'');
+MeshLoc = fullfile(SaveLoc,'');
+RegisLoc = fullfile(SaveLoc,'');
 PatientList = dir(fullfile(BrainLoc));
 
 if ~exist(RegisLoc,'dir')
@@ -81,8 +80,6 @@ for k = 3:numel(PatientList)
     ADCloc = fullfile(BrainLoc, PatientFile, [PatientName '_ADC.nii.gz']);
     
     if exist(ADCloc, 'file')
-        ADCImg = niftiread(ADCloc);
-        ADCImg = double(ADCImg);
         
         if ~exist(fullfile(RegisLoc, PatientName),'dir')
             mkdir(fullfile(RegisLoc, PatientName));
@@ -108,18 +105,11 @@ for k = 3:numel(PatientList)
         Flairloc = fullfile(BrainLoc, PatientFile, [PatientName '_FLAIR.nii.gz']);
         FlairImg = niftiread(Flairloc);
         
-        %     Lab = niftiread(fullfile(BrainLoc, PatientFile, [PatientName '-seg.nii.gz']));
-        Lab = [];
         
         regisImg = cat(4, T1wImg, T1ceImg, FlairImg, T2Img);
         regisImg = double(regisImg);
-        %     T2_copy = T2Img;
-        %     T2_copy(Lab == 0) = 1;
-        %     T2_copy(T2Img == 0) = 0;
-        %     T2_copy = int16(T2_copy);
         
         BraTS_Writer(Info, regisImg, fullfile(RegisLoc, PatientName, PatientName), true);
-        BraTS_Writer(Info, ADCImg, fullfile(RegisLoc, PatientName, [PatientName '_ADC']), true);
         DenImg = T2Img;
         RawImg = regisImg;
         
@@ -136,8 +126,6 @@ for k = 3:numel(PatientList)
         fprintf('Time Elapsed (Make Mesh): %f(s)\n', toc);
         save(fullfile(MeshLoc, [PatientName '.mat']), 'T', 'V', 'Bdry',...
             'VB', 'VI');
-%         load(fullfile(MeshLoc, [PatientName '.mat']), 'T', 'V', 'Bdry',...
-%             'VB', 'VI');
         
         %% Phase1 OMT
         tic;
@@ -165,9 +153,8 @@ for k = 3:numel(PatientList)
         fprintf('Time Elapsed (Phase1 OMT): %f(s)\n', toc);
         
         %% Phase1 Make Tensor
-        load(fullfile(MeshLoc, [PatientName '.mat']), 'V'); % add 1018
-%         load(fullfile(IdxLoc, [PatientName '.mat']), 'Idx', 'InvIdx', 'InvIdx_Raw');
-%         InvIdx = InvIdx + 1;
+        load(fullfile(MeshLoc, [PatientName '.mat']), 'V'); 
+
         tic;
         fprintf('Phase1 Make Tensor\n');
         [nx, ny, nz, ~]  = size(RawImg);
@@ -189,34 +176,6 @@ for k = 3:numel(PatientList)
         CubeImg = MakeCubeImg(regisImg, InvIdx_Raw, 128);
         CubeADC = MakeCubeImg(ADCImg, InvIdx_Raw, 128);
         fprintf('Time Elapsed (Phase1 MakeTensor): %f(s)\n', toc);
-
-        %% MAT2PY
-        RawSize  = size(DImg, 1, 2, 3);
-        CubeSize = size(CubeImg, 1, 2, 3);
-        % 1. Convert (col major) BrainIdx to (row major) BrainIdx
-        [i, j, l] = ind2sub(RawSize, BrainIdx);
-        BrainIdx = sub2ind(flip(RawSize), l, j, i);
-        
-        % 2. sort (row major) BrainIdx and record the order IB
-        [~, IB] = sort(BrainIdx);
-        
-        % 3. update (col major) Idx    by IB
-        %    update (col major) InvIdx by IC
-        Idx    = Idx(IB);
-        InvIdx = InvIdx(IC);
-        
-        % 4. convert (col major) Idx    to (row major) Idx
-        %    convert (col major) InvIdx to (row major) InvIdx
-        [i, j, l] = ind2sub(CubeSize, Idx);
-        Idx = sub2ind(flip(CubeSize), l, j, i);
-        [i, j, l] = ind2sub(RawSize, InvIdx);
-        InvIdx = sub2ind(flip(RawSize), l, j, i);
-        
-        % 6. Minus 1 for BrainIdx, Idx and InvIdx (since PYTHON starts from 0)
-        Idx = Idx - 1;
-        InvIdx = InvIdx - 1;
-        
-        fprintf('Time Elapsed (MAT2PY): %f(s)\n', toc);
         
         %% Save file
         save(fullfile(IdxLoc, [PatientName '.mat']), 'Idx', 'InvIdx', 'InvIdx_Raw');
