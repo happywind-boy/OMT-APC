@@ -23,22 +23,6 @@ class LoadImg():
         return data
 
 
-class LoadRawImg():
-    def __init__(self, keys):
-        self.keys = keys
-
-    def __call__(self, data):
-        for key in self.keys:
-            if key in data:
-                data[key] = np.stack([nib.load(f"{data[key]}_{cat}.nii.gz").get_fdata()
-                            for cat in ['flair', 't1', 't1ce', 't2']], axis=-1)
-
-            else:
-                raise KeyError(f"{key} is not a key of data")
-
-        return data
-
-
 class LoadIdx():
     def __init__(self, keys):
         self.keys = keys
@@ -208,17 +192,3 @@ class RandomGaussianNoise():
                     raise KeyError(f"{key} is not a key of data")
         return data
 
-
-class ResizeOMT():
-    def __init__(self, keys, p=0.1, sig=0.01):
-        self.keys = keys
-
-    def __call__(self, data):
-        if random.random() < self.p:
-            for key in self.keys:
-                if key in data:
-                    data[key] = Resize((4, 64, 64, 64))
-
-                else:
-                    raise KeyError(f"{key} is not a key of data")
-        return data
