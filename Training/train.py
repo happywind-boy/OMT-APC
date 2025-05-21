@@ -4,7 +4,6 @@
 import argparse
 from monai.data import DataLoader
 from src.dataset import *
-from src.trainer import *
 from src.logger import *
 from src.config import *
 from src.utils import *
@@ -12,9 +11,6 @@ from src.metric import *
 from tqdm import tqdm
 from datetime import datetime
 from sklearn.metrics import roc_auc_score
-import warnings
-
-warnings.filterwarnings("ignore")
 
 # from pyecharts import options as opt
 parser = argparse.ArgumentParser()
@@ -76,7 +72,7 @@ parser.add_argument('--prob_flipud', type=float, default=0.25, help='probability
 parser.add_argument('--prob_noise', type=float, default=0.1, help='probability of random gaussian noise')
 
 # set device
-parser.add_argument('--num_workers', type=int, default=0, help='number of workers')
+parser.add_argument('--num_workers', type=int, default=16, help='number of workers')
 parser.add_argument('--device', type=int, default=[0,1,2,3], nargs='+', help='index of gpu device')
 
 # set root
