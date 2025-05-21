@@ -1,0 +1,25 @@
+function [S, uv, L] = Linear(F, V)
+Q = Tri.Quality(F, V);
+[~, Fid] = min(Q);
+f = F(Fid,:);
+A = V(f(1),:);
+B = V(f(2),:);
+C = V(f(3),:);
+alpha = sum((C-A).*(B-A), 2) ./ sum((B-A).^2, 2); % < C-A, B-A > / || B-A ||^2
+E = A + alpha(:,ones(1,3)).*(B-A);                % E = A + theta ( B - A )
+normBA = sqrt(sum((B-A).^2, 2));
+normCE = sqrt(sum((C-E).^2, 2));
+Vno = size(V,1);
+uv = zeros(Vno,2);
+uv(f(1),:) = [-1./normBA, (1-alpha)./normCE];
+uv(f(2),:) = [ 1./normBA,    alpha ./normCE];
+uv(f(3),:) = [         0,       -1 ./normCE];
+VI = true(Vno,1);
+VI(f) = false;
+L = Tri.Laplacian(F, V);
+rhs = -L(VI,f) * uv(f,:);
+uv(VI,:) = L(VI,VI)\rhs;
+uv = Tri.Downward(F, uv);
+uv = Vertex.Centralize(uv);
+uv = uv / median( sqrt(sum(uv.^2, 2)) );
+S = Vertex.InvSGProj(uv);
