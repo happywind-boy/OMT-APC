@@ -1,0 +1,9 @@
+function [Q, E] = FaceQuality(F, V)
+E12 = V(F(:,2),:) - V(F(:,1),:);
+E23 = V(F(:,3),:) - V(F(:,2),:);
+E31 = V(F(:,1),:) - V(F(:,3),:);
+LE12 = VecNorm(E12);
+LE23 = VecNorm(E23);
+LE31 = VecNorm(E31);
+E = [LE12, LE23, LE31];
+Q = VecNorm( bsxfun(@minus, E, mean(E,2)) );

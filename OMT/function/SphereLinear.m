@@ -1,0 +1,24 @@
+function [S, uv, L] = SphereLinear(F, V)
+Q = FaceQuality(F, V);
+[~, Fid] = min(Q);
+f = F(Fid,:);
+A = V(f(1),:);
+B = V(f(2),:);
+C = V(f(3),:);
+alpha = sum((C-A).*(B-A), 2) ./ sum((B-A).^2, 2); % < C-A, B-A > / || B-A ||^2
+E = A + alpha(:,ones(1,3)).*(B-A);                % E = A + alpha ( B - A )
+normBA = sqrt(sum((B-A).^2, 2));
+normCE = sqrt(sum((C-E).^2, 2));
+Vno = size(V,1);
+uv = zeros(Vno,2);
+uv(f(1),:) = [-1./normBA, (1-alpha)./normCE];
+uv(f(2),:) = [ 1./normBA,    alpha ./normCE];
+uv(f(3),:) = [         0,       -1 ./normCE];
+VI = setdiff((1:Vno).',f);
+L = LaplaceBeltrami(F, V);
+rhs = -L(VI,f) * uv(f,:);
+uv(VI,:) = L(VI,VI)\rhs;
+uv(:,2) = -uv(:,2);
+uv = Centralize(uv);
+uv = MedianScaling(uv);
+S = InverseStereographicProjection(uv);
