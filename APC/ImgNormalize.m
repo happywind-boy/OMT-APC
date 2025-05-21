@@ -1,4 +1,4 @@
- function Img = ImgNormalize(Img)
+function Img = ImgNormalize(Img)
 ImgMean = mean(Img, [1,2,3]);
 ImgStd = std(Img,0,[1 2 3]);
 Img = (Img - ImgMean)./ImgStd;
