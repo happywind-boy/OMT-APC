@@ -473,28 +473,7 @@ class BasicLayer(nn.Module):
         return x, L, H, W
 
 
-embed_dim = 128
-input = torch.rand(size=[4, 3, 64, 64, 64])
-model1 = PatchEmbed(embed_dim=embed_dim)
-out, L, H, W = model1(input)
-
-dpr = [x.item() for x in torch.linspace(0, 0.1, 12)]
-depths = (2, 2, 6, 2)
-layers = nn.ModuleList()
-for i_layer in range(4):
-    layer = BasicLayer(dim=int(embed_dim * 2 ** i_layer),
-                       depth=2,
-                       num_heads=3,
-                       window_size=6,
-                       mlp_ratio=4.0,
-                       qkv_bias=True,
-                       drop=0,
-                       attn_drop=0,
-                       drop_path=dpr[sum(depths[:0]):sum(depths[:0 + 1])],
-                       norm_layer=nn.LayerNorm,
-                       downsample=PatchMerging if (i_layer < 4) else None,
-                       use_checkpoint=False)
-    layers.append(layer)
-model2 = layers[0]
-out2, l, h, w = model2(out, L, H, W)
-print(out2.size())
+if __name__ == '__main__':
+    embed_dim = 128
+    input = torch.rand(size=[4, 3, 64, 64, 64])
+    model1 = PatchEmbed(embed_dim=embed_dim)
