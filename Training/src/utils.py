@@ -72,23 +72,6 @@ def get_topk_ckpt(weight_path, topk=3):
     return topk_ckpt
 
 
-def get_test_config(config):
-    keys = ['val_file', 'val_num',
-            'model', 'in_channels', 'out_channels', 'init_filters', 'depth', 'norm', 'dropout', 'act',
-            'loss', 'omt_root', 'raw_root']
-    values = [config[k] for k in keys]
-
-    return dict(zip(keys, values))
-
-
-def get_class_config(config):
-    keys = ['model', 'in_channels', 'out_channels', 'init_filters', 'dropout', 'act', 'loss', 'reduction',
-            'feature_channels', 'hidden_channels', 'new_feature_channels', 'linear_channels']
-    values = [config[k] for k in keys]
-
-    return dict(zip(keys, values))
-
-
 def print_dict(**inputs):
     print(', '.join(f"{k}: {v}" for k, v in zip(inputs.keys(), inputs.values())))
 
