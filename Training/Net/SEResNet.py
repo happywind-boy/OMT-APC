@@ -9,6 +9,7 @@ from torch.hub import load_state_dict_from_url
 from torchvision.models import ResNet
 
 
+#--------------------- Layer function ---------------------#
 class BasicModule(nn.Module):
     def __init__(self):
         super(BasicModule, self).__init__()
@@ -132,64 +133,6 @@ class SEBottleneck(nn.Module):
         return out
 
 
-def se_resnet18(num_classes=1_000):
-    """Constructs a ResNet-18 model.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-    """
-    model = ResNet(SEBasicBlock, [2, 2, 2, 2], num_classes=num_classes)
-    model.avgpool = nn.AdaptiveAvgPool3d(1)
-    return model
-
-
-def se_resnet34(num_classes=1_000):
-    """Constructs a ResNet-34 model.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-    """
-    model = ResNet(SEBasicBlock, [3, 4, 6, 3], num_classes=num_classes)
-    model.avgpool = nn.AdaptiveAvgPool3d(1)
-    return model
-
-
-def se_resnet50(num_classes=1_000, pretrained=False):
-    """Constructs a ResNet-50 model.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-    """
-    model = ResNet(SEBottleneck, [3, 4, 6, 3], num_classes=num_classes)
-    model.avgpool = nn.AdaptiveAvgPool3d(1)
-    if pretrained:
-        model.load_state_dict(load_state_dict_from_url(
-            "https://github.com/moskomule/senet.pytorch/releases/download/archive/seresnet50-60a8950a85b2b.pkl"))
-    return model
-
-
-def se_resnet101(num_classes=1_000):
-    """Constructs a ResNet-101 model.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-    """
-    model = ResNet(SEBottleneck, [3, 4, 23, 3], num_classes=num_classes)
-    model.avgpool = nn.AdaptiveAvgPool3d(1)
-    return model
-
-
-def se_resnet152(num_classes=1_000):
-    """Constructs a ResNet-152 model.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-    """
-    model = ResNet(SEBottleneck, [3, 8, 36, 3], num_classes=num_classes)
-    model.avgpool = nn.AdaptiveAvgPool3d(1)
-    return model
-
-
 class CifarSEBasicBlock(nn.Module):
     def __init__(self, inplanes, planes, stride=1, reduction=16):
         super(CifarSEBasicBlock, self).__init__()
@@ -246,46 +189,7 @@ class ResBlock1d(nn.Module):
         return out
 
 
-class Norm1d():
-    def __init__(self, *args):
-        self.arg = args
-
-    def __call__(self, x):
-        mean = torch.mean(x, 0, True)
-        std = torch.std(x, 0, True)
-        out = (x - mean) / std
-        return out
-
-
-def ProbW(x, sigma=1 / 3, Lambda=1 / 2):
-    B, L = x.size()
-    # out = copy.deepcopy(x)
-    if L == 12:
-        t1ce_p = sigma * x[:, :2] + sigma * x[:, 2:4] + sigma * x[:, 4:6]
-        t2_p = sigma * x[:, 6:8] + sigma * x[:, 8:10] + sigma * x[:, 10:]
-        out = Lambda * t1ce_p + (1 - Lambda) * t2_p
-    else:
-        raise KeyError(f"Expected length is 12 but got {L} !")
-    return out
-
-
-class Prob():
-    def __init__(self, sigma=1 / 3, *args):
-        self.arg = args
-        self.sigma = sigma
-
-    def __call__(self, x):
-        _, L = x.size()
-        # out = copy.deepcopy(x)
-        if L == 12:
-            t1ce_p = self.sigma * x[:, :2] + self.sigma * x[:, 2:4] + self.sigma * x[:, 4:6]
-            t2_p = self.sigma * x[:, 6:8] + self.sigma * x[:, 8:10] + self.sigma * x[:, 10:]
-            out = 0.5 * t1ce_p + 0.5 * t2_p
-        else:
-            raise KeyError(f"Expected length is 12 but got {L} !")
-        return out
-
-
+#--------------------- Model Class ---------------------#
 class CifarSEResNet(nn.Module):
     def __init__(self, block, n_size, in_channel=3, num_classes=2, feature_channel=32, reduction=16):
         super(CifarSEResNet, self).__init__()
@@ -362,67 +266,6 @@ class CifarSEResNet(nn.Module):
         x = self.act(x)
 
         return x
-
-
-# class SEResNet(nn.Module):
-#     def __init__(self, block, n_size, in_channel=3, num_classes=2, reduction=16):
-#         super(SEResNet, self).__init__()
-#         self.inplane = 16
-#         self.num_classes = num_classes
-#         self.in_channel = in_channel
-#         self.conv1 = nn.Conv3d(
-#             self.in_channel, self.inplane, kernel_size=3, stride=1, padding=1, bias=False)
-#         self.bn1 = nn.BatchNorm3d(self.inplane)
-#         self.bny = nn.BatchNorm1d(8)
-#         self.relu = nn.ReLU(inplace=True)
-#         self.layer1 = self._make_layer(
-#             block, 16, blocks=n_size, stride=1, reduction=reduction)
-#         self.layer2 = self._make_layer(
-#             block, 32, blocks=n_size, stride=2, reduction=reduction)
-#         self.layer3 = self._make_layer(
-#             block, 64, blocks=n_size, stride=2, reduction=reduction)
-#         self.layer4 = self._make_layer(
-#             block, 128, blocks=n_size, stride=2, reduction=reduction)
-#         self.avgpool = nn.AdaptiveAvgPool3d(1)
-#         self.fc1 = nn.Linear(64, 16)
-#         self.fc2 = nn.Linear(16, self.num_classes)
-#         self.act = nn.Softmax(dim=1)
-#         self.initialize()
-#
-#     def initialize(self):
-#         for m in self.modules():
-#             if isinstance(m, nn.Conv3d):
-#                 nn.init.kaiming_normal_(m.weight)
-#             elif isinstance(m, nn.BatchNorm3d):
-#                 nn.init.constant_(m.weight, 1)
-#                 nn.init.constant_(m.bias, 0)
-#
-#     def _make_layer(self, block, planes, blocks, stride, reduction):
-#         strides = [stride] + [1] * (blocks - 1)
-#         layers = []
-#         for stride in strides:
-#             layers.append(block(self.inplane, planes, stride, reduction))
-#             self.inplane = planes
-#
-#         return nn.Sequential(*layers)
-#
-#     def forward(self, x):
-#         x = self.conv1(x)
-#         x = self.bn1(x)
-#         x = self.relu(x)
-#
-#         x = self.layer1(x)
-#         x = self.layer2(x)
-#         x = self.layer3(x)
-#
-#         x = self.avgpool(x)
-#         x = x.view(x.size(0), -1)
-#
-#         x = self.fc1(x)
-#         x = self.fc2(x)
-#         x = self.act(x)
-#
-#         return x
 
 
 class SEResNet(nn.Module):
@@ -561,42 +404,6 @@ class CifarMixSEResNet(nn.Module):
         return out
 
 
-# class CifarSEPreActResNet(CifarSEResNet):
-#     def __init__(self, block, n_size, in_channel=3, num_classes=2, feature_channel=32, reduction=16):
-#         super(CifarSEPreActResNet, self).__init__(
-#             block, n_size, in_channel, num_classes, reduction)
-#         self.fea_ = feature_channel + 128
-#         self.fea_out_ = int(feature_channel / 4)
-#         self.bn1 = nn.BatchNorm3d(self.inplane)
-#         self.fc0 = nn.Linear(256, 128)
-#         self.fc1 = nn.Linear(self.fea_, 8)
-#         self.fc2 = nn.Linear(8, self.num_classes)
-#         self.initialize()
-#
-#     def forward(self, x, y):
-#         x = self.conv1(x)
-#         x = self.layer1(x)
-#         x = self.layer2(x)
-#         x = self.layer3(x)
-#         x = self.layer4(x)
-#         x = self.layer5(x)
-#         # print(x.shape)
-#
-#         x = self.bn1(x)
-#         x = self.relu(x)
-#
-#         x = self.avgpool(x)
-#         x = x.view(x.size(0), -1)
-#         x = self.fc0(x)
-#
-#         x = torch.cat((x, y), dim=-1)
-#         x = self.fc1(x)
-#         x = self.fc2(x)
-#         x = self.act(x)
-#
-#         return x
-
-
 class CifarSEPreActResNet(CifarSEResNet):
     def __init__(self, block, n_size, in_channel=3, num_classes=2, feature_channel=12, linear_channel=24, reduction=16):
         super(CifarSEPreActResNet, self).__init__(
@@ -633,6 +440,7 @@ class CifarSEPreActResNet(CifarSEResNet):
         return x
 
 
+#--------------------- Model function ---------------------#
 def se_resnet(**kwargs):
     """Constructs a ResNet-18 model.
 
@@ -738,17 +546,5 @@ def se_mixresnet51(**kwargs):
 
 
 if __name__ == '__main__':
-    # start = time.time()
-    # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    # x = torch.randn((2, 3, 128, 128, 128)).to(device)
-    # fea = torch.rand(size=[2, 12]).to(device)
-    # model = se_res9net(in_channel=3, num_classes=2).to(device)
-    #
-    # total = sum([param.nelement() for param in model.parameters()])
-    # print(total)
-    #
-    # y = model(x)
-    # print(y)
-    # print(time.time() - start)
     strides = [2] + [1] * (9 - 1)
     print(strides)
