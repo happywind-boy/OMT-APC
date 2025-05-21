@@ -2,7 +2,7 @@
 # Author : Wang Han
 # Southeast University
 import argparse
-from monai.data import CSVSaver, DataLoader
+from monai.data import DataLoader
 from src.dataset import *
 from src.trainer import *
 from src.logger import *
@@ -11,10 +11,8 @@ from src.utils import *
 from src.metric import *
 from tqdm import tqdm
 from datetime import datetime
-from sklearn.model_selection import KFold
 from sklearn.metrics import roc_auc_score
 import warnings
-from torch.utils.tensorboard import SummaryWriter
 
 warnings.filterwarnings("ignore")
 
@@ -23,26 +21,22 @@ parser = argparse.ArgumentParser()
 
 # set dataset
 parser.add_argument('--data', type=str, default='omt', help='omt or raw')
-# parser.add_argument(
-#    '--data_file', type=str,
-#    default=["/njcam_share/gj/IDH_classfication/UCSF/"],
-#    nargs='+', help='training file')
 parser.add_argument(
     '--label_file', type=str,
-    default=["/njcam_share/wh/Classification/feature/data_table.csv", ],
+    default=["data_table.csv", ],
     nargs='+', help='label file')
 
 parser.add_argument(
     '--feature_file', type=str,
     default=[
-        "/njcam_share/wh/Classification/feature/Class_Data_norm.csv",
+        "Class_Data_norm.csv",
     ],
     nargs='+', help='feature file')
 
 parser.add_argument(
     '--tensor_feature_file', type=str,
     default=[
-        "/njcam_share/wh/Classification/feature/feature-IDH_rank20_weival-weitest-WPXtikonov-diag_1e-4.csv",
+        "feature-IDH_rank20_weival-weitest-WPXtikonov-diag_1e-4.csv",
     ],
     nargs='+', help='tensor feature file')
 
@@ -59,10 +53,9 @@ parser.add_argument('--init_filters', type=int, default=32, help='number of outp
 parser.add_argument('--norm', type=str, default='INSTANCE', help='normalization')
 parser.add_argument('--dropout', type=float, default=0.2, help='dropout rate')
 parser.add_argument('--act', type=str, default='softmax', help='activation function')
-parser.add_argument('--pretrain_weight', type=str, default='', help='path of pretrain weight')
 
 # set training
-parser.add_argument('-ep', '--epoches', type=int, default=400, help='number of epoches')
+parser.add_argument('-ep', '--epoches', type=int, default=1000, help='number of epoches')
 parser.add_argument('-bs', '--batch_size', type=int, default=2, help='number of batch size')
 parser.add_argument('--valid_period', type=int, default=5, help='test period')
 parser.add_argument('--save_topk', type=int, default=10, help='number of save checkpoint')
@@ -74,7 +67,7 @@ parser.add_argument('--scheduler', type=str, default='step', help='learning rate
 parser.add_argument('--lr', type=float, default=1e-5, help='learning rate')
 parser.add_argument('--weight_decay', type=float, default=1e-5, help='weight decay')
 parser.add_argument('--lr_decay_period', type=int, default=10, help='learning rate decay period')
-parser.add_argument('--lr_decay_factor', type=float, default=0.98, help='learning rate decay factor')
+parser.add_argument('--lr_decay_factor', type=float, default=0.96, help='learning rate decay factor')
 
 # set augmentation
 parser.add_argument('--prob_rot90', type=float, default=0.25, help='probability of rot 90 degree')
@@ -84,20 +77,20 @@ parser.add_argument('--prob_noise', type=float, default=0.1, help='probability o
 
 # set device
 parser.add_argument('--num_workers', type=int, default=0, help='number of workers')
-parser.add_argument('--device', type=int, default=[2], nargs='+', help='index of gpu device')
+parser.add_argument('--device', type=int, default=[0,1,2,3], nargs='+', help='index of gpu device')
 
 # set root
 parser.add_argument('--log_save_path', type=str,
-                    default="/njcam_share/wh/Classification/code/result",
+                    default="result",
                     help='log_save_path')
 parser.add_argument('--train_id', type=str,
-                    default=["/njcam_share/wh/Classification/code/index/IDH-training.txt", ],
+                    default=["IDH-training.txt", ],
                     nargs='+', help='train_id')
 parser.add_argument('--val_id', type=str,
-                    default="/njcam_share/wh/Classification/code/index/IDH-TCGA.txt",
+                    default="IDH-TCGA.txt",
                     help='val_id')
 parser.add_argument('--test_id', type=str,
-                    default="/njcam_share/wh/Classification/code/index/IDH-testing.txt",
+                    default="IDH-testing.txt",
                     help='test_id')
 # set information
 parser.add_argument('--information', type=str, default='IDH-Img-Fea', help='record')
@@ -107,8 +100,8 @@ opt = parser.parse_args()
 
 def train(opt):
 
-    data_file = {'omt': ['/njcam_share/wh/Classification/Data/','/njcam_share/wh/Classification/Data1.0/',],
-                 'raw': ['/njcam_share/wh/Classification/Data/','/njcam_share/wh/Classification/Data1.0/',]}
+    data_file = {'omt': ['Data/','Data1/',],
+                 'raw': ['Data/','Data1/',]}
     data_loc = data_file[opt.data]
     
     train_id = []
@@ -122,13 +115,6 @@ def train(opt):
             file_lsk.append(data_loc[k])
         train_id += train_idk
         file_ls += file_lsk
-    
-    #print(len(train_id))
-    #print(len(file_ls))
-        
-    #f = open(opt.train_id, encoding='gbk')
-    #for line in f:
-    #    train_id.append(line.strip())
 
     val_id = []
     f = open(opt.val_id, encoding='gbk')
@@ -208,7 +194,7 @@ def train(opt):
             optimizer.zero_grad()
             ID = train_data['ID']
             train_images, train_labels = train_data["image"].to(device), train_data["label"].to(device)
-            #train_features1 = train_data["feature1"].to(device)
+            train_features1 = train_data["feature1"].to(device)
             train_features2 = train_data["feature2"].to(device)
 
             #train_outputs = model(train_images)
@@ -304,15 +290,6 @@ def train(opt):
                 log.add(epoch=epoch, type='val', **val_record)
                 log.save()
                 
-                torch.save(model.state_dict(),
-                           os.path.join(save_root, 'weight',
-                                        f'weight_{epoch}_{acc_val:.4f}_{auc_val:.4f}.pth'))
-
-                #if auc_val > best_auc:
-                #    best_auc = acc_val
-                #    model_path = os.path.join(save_root, 'weight',
-                #                              f'weight_{epoch}_{acc_val:.4f}_{auc_val:.4f}.pth')
-                #    torch.save(model.state_dict(), model_path)
             
             with torch.no_grad():
                 num_correct_test = 0.0
@@ -369,53 +346,9 @@ def train(opt):
                 log.add(epoch=epoch, type='test', **test_record)
                 log.save()
                 
-                #torch.save(model.state_dict(),
-                #           os.path.join(save_root, 'weight',
-                #                        f'weight_{acc_test:.4f}_{auc_test:.4f}.pth'))
-
-        # predict_model = get_model(opt)
-        # predict_model.load_state_dict(torch.load(model_path))
-        # predict_model.to(device)
-        # predict_model.eval()
-        # test_bar = tqdm(test_loader)
-        #
-        # test_pred_all = []
-        # test_label_all = []
-        # test_acc_correct = []
-        # test_total_count = []
-        #
-        # for test_data in test_bar:
-        #     test_images, test_labels = test_data["image"].to(device), test_data["label"].to(device)
-        #     test_features1 = test_data["feature1"].to(device)
-        #     test_features2 = test_data["feature2"].to(device)
-        #
-        #     test_outputs = model(test_images, test_features1, test_features2)
-        #
-        #     test_pred = test_outputs.float()
-        #     test_label = test_labels.squeeze(dim=1)
-        #
-        #     test_value = torch.eq(test_pred, test_label)
-        #     test_total_count.append(len(test_value))
-        #     test_acc_correct.append(value.sum().item())
-        #     test_pred_all.extend(pred1.cpu())
-        #     test_label_all.extend(label.cpu())
-        #
-        # sen_test, spe_test = metrics(test_pred_all, test_label_all)
-        # acc_test = sum(acc_correct) / sum(total_count)
-        # auc_test = roc_auc_score(label_all, pred_all)
-        # print('Test ACC:{:.4f}'.format(acc_test))
-        # print('Test AUC:{:.4f}'.format(auc_test))
-        # print('Test Sensitivity:{:.4f}'.format(sen_test))
-        # print('Test Specificity:{:.4f}'.format(spe_test))
-        # test_record = {
-        #     'ACC': acc_test,
-        #     'AUC': auc_test,
-        #     'Sensitivity': sen_test.item(),
-        #     'Specificity': spe_test.item()
-        # }
-        # log.add(epoch=epoch, type='test', **test_record)
-        # log.save()
-        # idx += 1
+                torch.save(model.state_dict(),
+                          os.path.join(save_root, 'weight',
+                                       f'weight_{acc_test:.4f}_{auc_test:.4f}.pth'))
 
 
 if __name__ == "__main__":
