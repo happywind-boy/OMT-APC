@@ -9,10 +9,10 @@ Cube = load(fullfile('maps', 'Cube', 'Cube_128_OMT.mat'));
 
 %% Setting
 P1_DensityName  = 'Exp-HE-Flair';
-P1_DensityParam = 1.0;
+P1_DensityParam = 1.75;
 
 P2_DensityName  = 'Exp-HE-Flair';
-P2_DensityParam = 1.0;
+P2_DensityParam = 1.75;
 DilateN = 5;
 ConvN   = 5;
 
@@ -115,36 +115,7 @@ for k = 3 %: numel(PatientList)
     CubeImg = MakeCubeImg(RawImg, InvIdx, 128);
     fprintf('Time Elapsed (Phase2 MakeTensor): %f(s)\n', toc);
     
-    %% MAT2PY
-    RawSize  = size(DImg, 1, 2, 3);
-    CubeSize = size(CubeImg, 1, 2, 3);
-    % 1. Convert (col major) BrainIdx to (row major) BrainIdx
-    [i, j, l] = ind2sub(RawSize, BrainIdx);
-    BrainIdx = sub2ind(flip(RawSize), l, j, i);
-    
-    % 2. sort (row major) BrainIdx and record the order IB
-    [~, IB] = sort(BrainIdx);
-    
-    % 3. update (col major) Idx    by IB
-    %    update (col major) InvIdx by IC
-    Idx    = Idx(IB);
-    InvIdx = InvIdx(IC);
-    
-    % 4. convert (col major) Idx    to (row major) Idx
-    %    convert (col major) InvIdx to (row major) InvIdx
-    [i, j, l] = ind2sub(CubeSize, Idx);
-    Idx = sub2ind(flip(CubeSize), l, j, i);
-    [i, j, l] = ind2sub(RawSize, InvIdx);
-    InvIdx = sub2ind(flip(RawSize), l, j, i);
-    
-    % 6. Minus 1 for BrainIdx, Idx and InvIdx (since PYTHON starts from 0)
-    Idx = Idx - 1;
-    InvIdx = InvIdx - 1;
-    
-    fprintf('Time Elapsed (MAT2PY): %f(s)\n', toc);
-    
     %% Save file
-
     save(fullfile(IdxLoc, [PatientName '.mat']), 'Idx', 'InvIdx');
     BraTS_Writer(Info, CubeImg, fullfile(OMTLoc, PatientName), true);
     fprintf('Total Elapsed Time: %f(s)\n', toc(Total_time));
