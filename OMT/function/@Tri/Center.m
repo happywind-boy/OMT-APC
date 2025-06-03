@@ -1,0 +1,15 @@
+function [Fid, Vid] = Center(F, V)
+L = Tri.Laplacian(F, V);
+Vno = size(V,1);
+I = speye(Vno);
+dt = 1e4;
+A = I + dt*L;
+VB = Tri.Boundary(F);
+f = zeros(Vno,1);
+f(VB) = 1;
+f = A\f;
+[~, Vid] = min(f);
+Q = Tri.Quality(F, V);
+Fid = find(sum(ismember(F, Vid),2)>0);
+[~, Qid] = min(Q(Fid));
+Fid = Fid(Qid);
